@@ -1,4 +1,4 @@
-1.python versopm
+1.python vserion
 3.11
 
 2.requried library install
