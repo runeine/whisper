@@ -3,6 +3,7 @@ import sounddevice as sd
 import numpy as np
 import queue
 import threading
+from datetime import datetime
 
 model = whisper.load_model("base")  # Load the Whisper model
 samplerate = 16000  # Sample rate for the audio input
@@ -21,29 +22,34 @@ def audio_to_text():
     # input 채널에 맞게 device index 설정
     with sd.InputStream(samplerate=samplerate, channels=2, callback=callback,device=2):
         #input("BlackHole 입력 신호를 테스트 중입니다. Jabra에서 소리를 내고 엔터를 누르세요.\n")
+        today = datetime.now().strftime("%Y%m%d")
+        title = input("파일명을 지정해주세요. : ")
         
-        while True:
-            audio_block_s = []
-            duration = 0
-            while duration < block_duration:
-                block = q.get()
-                audio_block_s.append(block)
-                duration += len(block) / samplerate
-            audio = np.concatenate(audio_block_s, axis=0)
-            
+        
+        with open("whisper_" + title+"_"+ today +".txt", "a") as f:
+        
+            while True:
+                audio_block_s = []
+                duration = 0
+                while duration < block_duration:
+                    block = q.get()
+                    audio_block_s.append(block)
+                    duration += len(block) / samplerate
+                audio = np.concatenate(audio_block_s, axis=0)
                 
-            # 스테레오(2채널) → 모노(1채널) 변환
-            if audio.ndim > 1 and audio.shape[1] == 2:
-                audio = np.mean(audio, axis=1)
-            audio = audio.astype(np.float32)
-            # float32로 변환 및 1차원 배열로 변환
-            #audio = audio.flatten().astype(np.float32)
+                    
+                # 스테레오(2채널) → 모노(1채널) 변환
+                if audio.ndim > 1 and audio.shape[1] == 2:
+                    audio = np.mean(audio, axis=1)
+                audio = audio.astype(np.float32)
+                # float32로 변환 및 1차원 배열로 변환
+                #audio = audio.flatten().astype(np.float32)
 
-            result = model.transcribe(audio, language="en", fp16=False)
-
-            
-            print(result["text"])
-
+                result = model.transcribe(audio, language="en", fp16=False)
+                text = result["text"].strip()
+                
+                print(result["text"])
+                f.write(text + "\n")
 
 if __name__ == "__main__":
     try:
